@@ -25,7 +25,7 @@ import requests
 logger = logging.getLogger("xgg_logger")
 
 
-def run_github_search(api_url, search_query, extension, token_env):
+def run_github_search(api_url, search_query, extension, token_env, sleep_sec: int = 3):
     """
     Run the GitHub API search with given search query
     Get the items from the response content and Return
@@ -52,7 +52,7 @@ def run_github_search(api_url, search_query, extension, token_env):
             search_response = content["items"]
             return search_response
         else:
-            time.sleep(2)
+            time.sleep(sleep_sec)
             logger.error(f"Search Response code: {response.status_code}. Continuing...")
     else:
         logger.error(
