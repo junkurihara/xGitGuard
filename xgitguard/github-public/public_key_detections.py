@@ -37,7 +37,7 @@ xGitGuard Public GitHub Keys and Token Detection process
 
     # Run with Primary Keywords, Secondary Keywords and Extensions from config files:
     python public_key_detections.py
-    
+
     # Run with Primary Keywords, Secondary Keywords and Extensions from config files with ML:
     python public_key_detections.py -m Yes
 
@@ -492,7 +492,7 @@ def process_search_results(search_response_lines, search_query, ml_prediction):
     return detection_writes_per_query, new_results_per_query, detections_per_query
 
 
-def format_search_query_list(primary_keyword, secondary_keywords):
+def format_search_query_list(primary_keyword, secondary_keywords, org: str = "github", usr: str or None = None):
     """
     Create the search query list using Primary Keyword and Secondary Keywords
     params: primary_keyword - string
@@ -502,11 +502,17 @@ def format_search_query_list(primary_keyword, secondary_keywords):
     logger.debug("<<<< 'Current Executing Function' >>>>")
     search_query_list = []
     # Format GitHub Search Query
+    usr_org_query_part = ""
+    if usr is not None:
+        usr_org_query_part = "user:{}".format(usr)
+    else:
+        usr_org_query_part = "org:{}".format(org)
     if primary_keyword:
         for secondary_keyword in secondary_keywords:
-            search_query_list.append(primary_keyword + " " + secondary_keyword)
+            search_query_list.append(primary_keyword + " " + secondary_keyword + " " + usr_org_query_part)
     else:
-        search_query_list = secondary_keywords.copy()
+        for secondary_keyword in secondary_keywords:
+            search_query_list.append(secondary_keyword + " " + usr_org_query_part)
 
     logger.info(f"Total search_query_list count: {len(search_query_list)}")
     return search_query_list
@@ -517,6 +523,8 @@ def run_detection(
     secondary_keywords=[],
     extensions=[],
     ml_prediction=False,
+    github_org: str = "github",
+    github_usr: str or None = None
 ):
     """
     Run GitHub detections
@@ -609,7 +617,7 @@ def run_detection(
     search_query_list = []
     # Format GitHub Search Query List
     search_query_list = format_search_query_list(
-        primary_keyword, configs.secondary_keywords
+        primary_keyword, configs.secondary_keywords, org=github_org, usr=github_usr
     )
     if search_query_list:
         if ml_prediction:
@@ -689,7 +697,7 @@ def run_detection(
     return True
 
 
-def run_detections_from_file(secondary_keywords=[], extensions=[], ml_prediction=False):
+def run_detections_from_file(secondary_keywords=[], extensions=[], ml_prediction=False, github_org: str = "github", github_usr: str or None = None):
     """
     Run detection for Primary Keywords present in the default config file
     params: secondary_keywords - list - optional
@@ -719,6 +727,8 @@ def run_detections_from_file(secondary_keywords=[], extensions=[], ml_prediction
                         secondary_keywords,
                         extensions,
                         ml_prediction,
+                        github_org,
+                        github_usr,
                     )
                     status = True
                 except Exception as e:
@@ -747,6 +757,8 @@ def run_detections_from_list(
     secondary_keywords=[],
     extensions=[],
     ml_prediction=False,
+    github_org: str = "github",
+    github_usr: str or None = None,
 ):
     """
     Run detection for Primary Keywords present in the given input list
@@ -794,6 +806,8 @@ def run_detections_from_list(
                         secondary_keywords,
                         extensions,
                         ml_prediction,
+                        github_org,
+                        github_usr,
                     )
                 except Exception as e:
                     logger.error(f"Process Error: {e}")
@@ -842,6 +856,8 @@ def arg_parser():
     returns: unmask_secret - Boolean - Default - False
     returns: log_level - int - Default - 20  - INFO
     returns: console_logging - Boolean - Default - True
+    returns: github_org - str - Default - "github"
+    returns: github_usr - str or None - Default - None
     """
 
     argparser = argparse.ArgumentParser()
@@ -921,6 +937,24 @@ def arg_parser():
         choices=flag_choices,
         help="Pass the Console Logging as Yes or No. Default is Yes",
     )
+    argparser.add_argument(
+        "-o",
+        "--github_org",
+        metavar="Organization at public GitHub",
+        action="store",
+        type=str,
+        default="github",
+        help="Pass the organization",
+    )
+    argparser.add_argument(
+        "-a",
+        "--github_usr",
+        metavar="Username at public GitHub",
+        action="store",
+        type=str or None,
+        default=None,
+        help="Pass the username",
+    )
 
     args = argparser.parse_args()
 
@@ -956,6 +990,14 @@ def arg_parser():
         console_logging = True
     else:
         console_logging = False
+    if args.github_org:
+        github_org = args.github_org
+    else:
+        github_org = "github"
+    if args.github_usr:
+        github_usr = args.github_usr
+    else:
+        github_usr = None
 
     return (
         primary_keywords,
@@ -965,6 +1007,8 @@ def arg_parser():
         unmask_secret,
         log_level,
         console_logging,
+        github_org,
+        github_usr
     )
 
 
@@ -978,6 +1022,8 @@ if __name__ == "__main__":
         unmask_secret,
         log_level,
         console_logging,
+        github_org,
+        github_usr,
     ) = arg_parser()
 
     # Setting up Logger
@@ -998,9 +1044,9 @@ if __name__ == "__main__":
 
     if primary_keywords:
         run_detections_from_list(
-            primary_keywords, secondary_keywords, extensions, ml_prediction
+            primary_keywords, secondary_keywords, extensions, ml_prediction, github_org, github_usr
         )
     else:
-        run_detections_from_file(secondary_keywords, extensions, ml_prediction)
+        run_detections_from_file(secondary_keywords, extensions, ml_prediction, github_org, github_usr)
 
     logger.info("xGitGuard Keys and Token Detection Process Completed")

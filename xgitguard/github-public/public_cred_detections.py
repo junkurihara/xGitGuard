@@ -530,7 +530,7 @@ def format_search_query_list(primary_keyword, secondary_keywords, org: str = "gi
     # Format GitHub Search Query
     usr_org_query_part = ""
     if usr is not None:
-        usr_org_query_part = "usr:{}".format(usr)
+        usr_org_query_part = "user:{}".format(usr)
     else:
         usr_org_query_part = "org:{}".format(org)
     if primary_keyword:
